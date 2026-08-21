@@ -19,15 +19,17 @@ import (
 )
 
 const (
-	genesisForkVersionMainnet = "0x00000000"
-	genesisForkVersionSepolia = "0x90000069"
-	genesisForkVersionHolesky = "0x01017000"
-	genesisForkVersionHoodi   = "0x10000910"
+	genesisForkVersionMainnet    = "0x00000000"
+	genesisForkVersionSepolia    = "0x90000069"
+	genesisForkVersionHolesky    = "0x01017000"
+	genesisForkVersionHoodi      = "0x10000910"
+	genesisForkVersionPulsechain = "0x00000369"
 
-	genesisTimeMainnet = 1606824023
-	genesisTimeSepolia = 1655733600
-	genesisTimeHolesky = 1695902400
-	genesisTimeHoodi   = 1742213400
+	genesisTimeMainnet    = 1606824023
+	genesisTimeSepolia    = 1655733600
+	genesisTimeHolesky    = 1695902400
+	genesisTimeHoodi      = 1742213400
+	genesisTimePulsechain = 1683785555
 )
 
 type RelaySetupResult struct {
@@ -236,12 +238,16 @@ func setupGenesis(cmd *cli.Command) (string, uint64) {
 	case cmd.Bool(hoodiFlag.Name):
 		genesisForkVersion = genesisForkVersionHoodi
 		genesisTime = genesisTimeHoodi
+	case cmd.Bool(pulsechainFlag.Name):
+		genesisForkVersion = genesisForkVersionPulsechain
+		genesisTime = genesisTimePulsechain
+		config.SlotTimeSec = common.SlotTimeSecPulsechain
 	case cmd.Bool(mainnetFlag.Name):
 		genesisForkVersion = genesisForkVersionMainnet
 		genesisTime = genesisTimeMainnet
 	default:
 		flag.Usage()
-		log.Fatal("please specify a genesis fork version (eg. -mainnet / -sepolia / -holesky / -hoodi / -genesis-fork-version flags)")
+		log.Fatal("please specify a genesis fork version (eg. -mainnet / -sepolia / -holesky / -hoodi / -pulsechain / -genesis-fork-version flags)")
 	}
 
 	if cmd.IsSet(customGenesisTimeFlag.Name) {

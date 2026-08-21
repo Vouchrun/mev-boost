@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	SlotTimeSecMainnet = 12
+	SlotTimeSecMainnet    = 12
+	SlotTimeSecPulsechain = 10
 	// FieldElementsPerBlob is the number of field elements needed to represent a blob.
 	FieldElementsPerBlob = 4096
 	// BlobExpansionFactor is the factor by which we extend a blob for PeerDAS.

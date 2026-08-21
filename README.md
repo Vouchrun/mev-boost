@@ -56,6 +56,7 @@ See also:
   - [Sepolia testnet](#sepolia-testnet)
   - [Holesky testnet](#holesky-testnet)
   - [Hoodi testnet](#hoodi-testnet)
+  - [PulseChain mainnet](#pulsechain-mainnet)
   - [`test-cli`](#test-cli)
   - [mev-boost cli arguments](#mev-boost-cli-arguments)
     - [`-relays` vs `-relay`](#-relays-vs--relay)
@@ -228,6 +229,14 @@ Run MEV-Boost pointed at a Hoodi relay:
 ./mev-boost -hoodi -relay-check -relay URL-OF-TRUSTED-RELAY
 ```
 
+## PulseChain mainnet
+
+Run MEV-Boost pointed at a PulseChain relay:
+
+```
+./mev-boost -pulsechain -relay-check -relay URL-OF-TRUSTED-RELAY
+```
+
 ## `test-cli`
 
 `test-cli` is a utility to execute all proposer requests against MEV-Boost + relay. See also the [test-cli readme](cmd/test-cli/README.md).
@@ -264,6 +273,8 @@ Usage of mev-boost:
         use Mainnet (default true)
   -min-bid float
         minimum bid to accept from a relay [eth]
+  -pulsechain
+        use PulseChain mainnet
   -relay value
         a single relay, can be specified multiple times
   -relay-check

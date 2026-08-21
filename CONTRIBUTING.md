@@ -19,7 +19,7 @@ go run . -h
 ./mev-boost -hoodi -relay-check -relay URL-OF-TRUSTED-RELAY
 ```
 
-Note that you'll need to set the correct genesis fork version (either manually with `-genesis-fork-version` or a helper flag `-mainnet`/`-sepolia`/`-holesky`/`-hoodi`).
+Note that you'll need to set the correct genesis fork version (either manually with `-genesis-fork-version` or a helper flag `-mainnet`/`-sepolia`/`-holesky`/`-hoodi`/`-pulsechain`).
 
 ## Test
 
