@@ -36,11 +36,20 @@ extracted from commit `e0ba61c` ("Add PulseChain network support") on `atlas/mai
 | `CONTRIBUTING.md` | flag list now includes `-pulsechain` |
 | `pulsechain-values.md` | this report |
 
+## Verified build & test results
+
+- **Go toolchain:** `go1.24.13 windows/amd64` (portable ZIP, session-only PATH,
+  no system-wide install).
+- **Build:** `go build ./...` — **PASSED** (exit 0).
+- **Tests:** `go test ./...` — **ALL PASSED** (exit 0). 175 tests run
+  (47 top-level + 128 subtests), **0 failed, 0 skipped**.
+  - `go test ./cli/...` — ok (2.918s), includes the new
+    `TestSetupGenesisPulsechainFlag` and `TestSetupGenesisMainnetDefaultSlotTime`.
+  - `server`, `server/mock`, `server/types` — ok.
+- **No compile errors** from the `-pulsechain` change; no fix commit required.
+
 ## Uncertainties / notes
 
-- **No Go toolchain available** in this environment — code was not compiled or tested.
-  It is written to compile against the current `develop` (urfave/cli/v3 v3.2.0) and mirrors
-  the exact upstream network-flag pattern plus Atlas's PulseChain case.
 - Atlas's commit is based on upstream v1.9; our `develop` is newer, but the flag wiring is
   identical, so the port is direct (no behavioral drift).
 - `genesis_validators_root` and the fork-epoch values are **not** consumed by mev-boost
