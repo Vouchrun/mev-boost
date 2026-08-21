@@ -24,7 +24,7 @@ Live beacon source: `https://rpc-beacon.vouch.run/eth/v1/beacon/genesis` and
 `https://rpc-beacon.vouch.run/eth/v1/config/spec` (queried 2026-08-21). Atlas values
 extracted from commit `e0ba61c` ("Add PulseChain network support") on `atlas/main`.
 
-## Files changed (branch `pulsechain`)
+## Files changed (branch `pulse`)
 
 | File | Change |
 |---|---|
