@@ -63,6 +63,7 @@ services:
     network_mode: host          # beacon node reaches it at localhost:18550
     command:
       - -pulsechain
+      - -metrics
       - -relay-check
       - -min-bid=0.06
       - -relay=https://<RELAY_PUBKEY>@boost-relay.vouch.run
@@ -184,9 +185,28 @@ lighthouse vc --builder-proposals --gas-limit 45000000 ...
 
 ## 8. Monitoring during the pilot (plan §7 gates)
 
-- [ ] **Missed-proposal watcher:** compare each pilot host's proposer duties vs blocks
-  actually delivered, per validator, and alert if a pilot host drops below the fleet
-  baseline (plan §6). Gate: pilot missed-proposal rate ≤ non-pilot fleet baseline (§7.4).
+### 8.1 Sidecar metrics + scrape snippet (Tier 1)
+
+Start the sidecar with `-metrics` (included in the §3 compose): Prometheus metrics
+are served on `localhost:18551` (loopback only). To integrate with the community
+Dipslayer-style monitoring stack, add one scrape job to the node's
+`prometheus.yml` (the same file that already scrapes beacon `5054`, VC `5064`
+and geth `6060`):
+
+```yaml
+   - job_name: 'mev_boost'
+     metrics_path: /metrics
+     static_configs:
+       - targets: ['localhost:18551']
+```
+
+Key metrics to watch: relay-check status, registration counters, and (once bids
+flow) delivery counters. Everything binds loopback — no external access, no
+firewall changes.
+
+  - [ ] **Missed-proposal watcher:** compare each pilot host's proposer duties vs blocks
+    actually delivered, per validator, and alert if a pilot host drops below the fleet
+    baseline (plan §6). Gate: pilot missed-proposal rate ≤ non-pilot fleet baseline (§7.4).
 - [ ] **Gas-limit drift alert:** alert if any delivered block's gas limit diverges from the
   ~45M elastic target (catches a missed `--gas-limit 45000000` flag — §4).
 - [ ] **Fee-recipient enforcement:** 100% of relay-delivered blocks must pay the registered
