@@ -72,6 +72,18 @@ func (m *BoostService) getPayloadV2(log *logrus.Entry, signedBlindedBeaconBlockB
 }
 
 func (m *BoostService) innerGetPayload(log *logrus.Entry, signedBlindedBeaconBlockBytes []byte, userAgent, proposerContentType, proposerAcceptContentTypes, proposerEthConsensusVersion string, version GetPayloadVersion) (payloadResult, bidResp) {
+	// Normalize the consensus version once: production lighthouse-pulse omits
+	// the Eth-Consensus-Version header on blinded block submissions. Without
+	// normalization the relay receives an empty header and rejects with 400
+	// (ErrInvalidForkVersion). PulseChain is Capella-era with Deneb permanently
+	// disabled (relay fork config: deneb fork version 0xffffffff), so Capella
+	// is the only possible version. This covers decode, the forwarded header,
+	// SSZ-to-JSON conversion and response handling below.
+	if proposerEthConsensusVersion == "" {
+		log.Warn("eth-consensus-version header missing, defaulting to capella")
+		proposerEthConsensusVersion = EthConsensusVersionCapella
+	}
+
 	// Get the request's content type
 	parsedProposerContentType, _, err := mime.ParseMediaType(proposerContentType)
 	if err != nil {

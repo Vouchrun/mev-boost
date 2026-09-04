@@ -2149,3 +2149,72 @@ func TestGetPayloadToAllRelays(t *testing.T) {
 	require.Equal(t, 1, backend.relays[0].GetRequestCount(params.PathGetPayload))
 	require.Equal(t, 1, backend.relays[1].GetRequestCount(params.PathGetPayload))
 }
+
+// TestGetPayloadForwardsNormalizedEthConsensusVersion verifies that a getPayload
+// request without the Eth-Consensus-Version header is normalized to Capella
+// before being forwarded to the relay (lighthouse-pulse omits the header;
+// PulseChain is Capella-era with Deneb disabled, so Capella is the only
+// possible version). Without normalization the relay receives an empty header
+// and rejects with 400.
+func TestGetPayloadForwardsNormalizedEthConsensusVersion(t *testing.T) {
+	jsonBytes, err := os.ReadFile("../testdata/signed-blinded-beacon-block-capella.json")
+	require.NoError(t, err)
+
+	// Decode the fixture to obtain the slot and block hash for the bid
+	block := new(eth2Api.VersionedSignedBlindedBeaconBlock)
+	require.NoError(t, decodeSignedBlindedBeaconBlock(jsonBytes, MediaTypeJSON, EthConsensusVersionCapella, block))
+	slot, err := block.Slot()
+	require.NoError(t, err)
+	blockHash, err := block.ExecutionBlockHash()
+	require.NoError(t, err)
+
+	// No Eth-Consensus-Version header (lighthouse-pulse behavior)
+	header := make(http.Header)
+	header.Set(HeaderAccept, MediaTypeJSON)
+	header.Set(HeaderContentType, MediaTypeJSON)
+
+	for _, version := range []GetPayloadVersion{GetPayloadV1, GetPayloadV2} {
+		version := version
+		t.Run(string(version), func(t *testing.T) {
+			path := params.PathGetPayload
+			expectedStatus := http.StatusOK
+			if version == GetPayloadV2 {
+				path = params.PathGetPayloadV2
+				expectedStatus = http.StatusAccepted
+			}
+
+			backend := newTestBackend(t, 1, time.Second)
+
+			// Add the bid to the service
+			bid := bidResp{relays: make([]types.RelayEntry, len(backend.relays))}
+			for i, relay := range backend.relays {
+				bid.relays[i] = relay.RelayEntry
+			}
+			backend.boost.bids[bidKey(slot, blockHash)] = bid
+
+			if version == GetPayloadV1 {
+				backend.relays[0].GetPayloadResponse = blindedBlockToBlockResponse(block.Capella, spec.DataVersionCapella)
+			}
+
+			// Capture the Eth-Consensus-Version header the mock relay receives
+			gotVersion := make(chan string, 1)
+			override := func(w http.ResponseWriter, req *http.Request) {
+				gotVersion <- req.Header.Get(HeaderEthConsensusVersion)
+				if version == GetPayloadV1 {
+					backend.relays[0].DefaultHandleGetPayload(w, req)
+				} else {
+					backend.relays[0].DefaultHandleGetPayloadV2(w)
+				}
+			}
+			if version == GetPayloadV1 {
+				backend.relays[0].OverrideHandleGetPayload(override)
+			} else {
+				backend.relays[0].OverrideHandleGetPayloadV2(override)
+			}
+
+			rr := backend.requestBytes(t, http.MethodPost, path, header, jsonBytes)
+			require.Equal(t, expectedStatus, rr.Code, rr.Body.String())
+			require.Equal(t, EthConsensusVersionCapella, <-gotVersion)
+		})
+	}
+}
