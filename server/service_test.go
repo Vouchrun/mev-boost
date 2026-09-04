@@ -1673,8 +1673,10 @@ func TestGetPayloadV2(t *testing.T) {
 	t.Run("Returns error when no relay responds", func(t *testing.T) {
 		header := make(http.Header)
 		header.Set(HeaderAccept, MediaTypeJSON)
+		header.Set("Eth-Consensus-Version", "deneb")
 
 		backend := newTestBackend(t, 1, time.Second)
+		backend.relays[0].Server.Close() // simulate network error
 		rr := backend.request(t, http.MethodPost, path, header, payload)
 		require.Equal(t, http.StatusBadGateway, rr.Code)
 		require.Equal(t, 0, backend.relays[0].GetRequestCount(path))

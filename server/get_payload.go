@@ -521,13 +521,25 @@ func convertSSZToJSON(ethConsensusVersion string, sszBytes []byte) ([]byte, erro
 	return json.Marshal(block)
 }
 
+// decodeLog is used for warnings from decodeSignedBlindedBeaconBlock, which has
+// no per-request logger.
+var decodeLog = logrus.NewEntry(logrus.New())
+
 // decodeSignedBlindedBeaconBlock will decode the request block in either JSON or SSZ.
 // Note: when decoding JSON, we must attempt decoding from newest to oldest fork version.
+//
+// When ethConsensusVersion is empty we default to Capella instead of failing:
+// PulseChain is Capella-era with Deneb permanently disabled (relay fork config:
+// deneb fork version 0xffffffff), so Capella is the only possible blinded block
+// version. Production lighthouse-pulse clients omit the Eth-Consensus-Version
+// header entirely; rejecting the request would make the already-signed proposer
+// miss the slot (no local fallback possible).
 func decodeSignedBlindedBeaconBlock(in []byte, contentType, ethConsensusVersion string, out *eth2Api.VersionedSignedBlindedBeaconBlock) error {
 	switch contentType {
 	case MediaTypeOctetStream:
 		if ethConsensusVersion == "" {
-			return types.ErrMissingEthConsensusVersion
+			decodeLog.Warn("eth-consensus-version header missing, defaulting to capella")
+			ethConsensusVersion = EthConsensusVersionCapella
 		}
 		switch ethConsensusVersion {
 		case EthConsensusVersionBellatrix:
@@ -555,7 +567,8 @@ func decodeSignedBlindedBeaconBlock(in []byte, contentType, ethConsensusVersion 
 		}
 	case MediaTypeJSON:
 		if ethConsensusVersion == "" {
-			return types.ErrMissingEthConsensusVersion
+			decodeLog.Warn("eth-consensus-version header missing, defaulting to capella")
+			ethConsensusVersion = EthConsensusVersionCapella
 		}
 		var err error
 		switch ethConsensusVersion {
