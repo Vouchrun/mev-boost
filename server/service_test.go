@@ -111,12 +111,12 @@ func (be *testBackend) request(t *testing.T, method, path string, header http.He
 	return rr
 }
 
-func (be *testBackend) requestBytes(t *testing.T, method, path string, header http.Header, payloadBytes []byte) *httptest.ResponseRecorder {
+func (be *testBackend) requestBytes(t *testing.T, path string, header http.Header, payloadBytes []byte) *httptest.ResponseRecorder {
 	t.Helper()
 	var req *http.Request
 	var err error
 
-	req, err = http.NewRequest(method, path, bytes.NewReader(payloadBytes))
+	req, err = http.NewRequest(http.MethodPost, path, bytes.NewReader(payloadBytes))
 	require.NoError(t, err)
 
 	// Set header
@@ -1389,7 +1389,7 @@ func TestGetPayload(t *testing.T) {
 
 		payloadBytes, err := payload.MarshalSSZ()
 		require.NoError(t, err)
-		rr := backend.requestBytes(t, http.MethodPost, path, header, payloadBytes)
+		rr := backend.requestBytes(t, path, header, payloadBytes)
 		require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
 		require.Equal(t, 1, backend.relays[0].GetRequestCount(path))
 	})
@@ -1447,7 +1447,7 @@ func TestGetPayload(t *testing.T) {
 
 		payloadBytes, err := payload.MarshalSSZ()
 		require.NoError(t, err)
-		rr := backend.requestBytes(t, http.MethodPost, path, header, payloadBytes)
+		rr := backend.requestBytes(t, path, header, payloadBytes)
 
 		require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
 		require.Equal(t, 1, backend.relays[0].GetRequestCount(path))
@@ -1491,7 +1491,7 @@ func TestGetPayload(t *testing.T) {
 		// Send the request
 		payloadBytes, err := payload.MarshalSSZ()
 		require.NoError(t, err)
-		rr := backend.requestBytes(t, http.MethodPost, path, header, payloadBytes)
+		rr := backend.requestBytes(t, path, header, payloadBytes)
 		require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
 
 		// Ensure both relays got the request
@@ -2212,7 +2212,7 @@ func TestGetPayloadForwardsNormalizedEthConsensusVersion(t *testing.T) {
 				backend.relays[0].OverrideHandleGetPayloadV2(override)
 			}
 
-			rr := backend.requestBytes(t, http.MethodPost, path, header, jsonBytes)
+			rr := backend.requestBytes(t, path, header, jsonBytes)
 			require.Equal(t, expectedStatus, rr.Code, rr.Body.String())
 			require.Equal(t, EthConsensusVersionCapella, <-gotVersion)
 		})

@@ -56,7 +56,7 @@ func TestSetupGenesisPulsechainFlag(t *testing.T) {
 		},
 	}
 
-	err := cmd.Run(context.Background(), []string{"mev-boost", "--pulsechain"})
+	err := cmd.Run(t.Context(), []string{"mev-boost", "--pulsechain"})
 	require.NoError(t, err)
 	require.Equal(t, genesisForkVersionPulsechain, genesisForkVersion)
 	require.Equal(t, uint64(genesisTimePulsechain), genesisTime)
@@ -80,7 +80,7 @@ func TestSetupGenesisMainnetDefaultSlotTime(t *testing.T) {
 		},
 	}
 
-	err := cmd.Run(context.Background(), []string{"mev-boost", "--mainnet"})
+	err := cmd.Run(t.Context(), []string{"mev-boost", "--mainnet"})
 	require.NoError(t, err)
 	require.Equal(t, genesisForkVersionMainnet, genesisForkVersion)
 	require.Equal(t, uint64(genesisTimeMainnet), genesisTime)
