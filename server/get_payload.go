@@ -71,14 +71,18 @@ func (m *BoostService) getPayloadV2(log *logrus.Entry, signedBlindedBeaconBlockB
 	return result, bid
 }
 
-func (m *BoostService) innerGetPayload(log *logrus.Entry, signedBlindedBeaconBlockBytes []byte, userAgent, proposerContentType, proposerAcceptContentTypes, proposerEthConsensusVersion string, version GetPayloadVersion) (payloadResult, bidResp) {
-	// Normalize the consensus version once: production lighthouse-pulse omits
-	// the Eth-Consensus-Version header on blinded block submissions. Without
-	// normalization the relay receives an empty header and rejects with 400
-	// (ErrInvalidForkVersion). PulseChain is Capella-era with Deneb permanently
-	// disabled (relay fork config: deneb fork version 0xffffffff), so Capella
-	// is the only possible version. This covers decode, the forwarded header,
-	// SSZ-to-JSON conversion and response handling below.
+// decodeAndNormalizeBlindedBlock parses the proposer's content type, decodes
+// the signed blinded block, and normalizes a missing Eth-Consensus-Version
+// header to Capella (PulseChain is Capella-era with Deneb permanently disabled
+// - relay fork config: deneb fork version 0xffffffff - and production
+// lighthouse-pulse omits the header entirely). Returns the normalized
+// consensus version, the parsed content type and the decoded block; a non-nil
+// error means the request cannot be processed.
+func decodeAndNormalizeBlindedBlock(log *logrus.Entry, signedBlindedBeaconBlockBytes []byte, proposerContentType, proposerEthConsensusVersion string) (string, string, *eth2Api.VersionedSignedBlindedBeaconBlock, error) {
+	// Normalize the consensus version once: without normalization the relay
+	// receives an empty header and rejects with 400 (ErrInvalidForkVersion).
+	// This covers decode, the forwarded header, SSZ-to-JSON conversion and
+	// response handling.
 	if proposerEthConsensusVersion == "" {
 		log.Warn("eth-consensus-version header missing, defaulting to capella")
 		proposerEthConsensusVersion = EthConsensusVersionCapella
@@ -90,15 +94,22 @@ func (m *BoostService) innerGetPayload(log *logrus.Entry, signedBlindedBeaconBlo
 		log.WithError(err).Warn("failed to parse proposer content type")
 		parsedProposerContentType = MediaTypeJSON
 	}
-	log = log.WithField("parsedProposerContentType", parsedProposerContentType)
 
 	// Decode the request
 	request := new(eth2Api.VersionedSignedBlindedBeaconBlock)
-	err = decodeSignedBlindedBeaconBlock(signedBlindedBeaconBlockBytes, parsedProposerContentType, proposerEthConsensusVersion, request)
+	if err := decodeSignedBlindedBeaconBlock(signedBlindedBeaconBlockBytes, parsedProposerContentType, proposerEthConsensusVersion, request); err != nil {
+		return "", "", nil, err
+	}
+	return proposerEthConsensusVersion, parsedProposerContentType, request, nil
+}
+
+func (m *BoostService) innerGetPayload(log *logrus.Entry, signedBlindedBeaconBlockBytes []byte, userAgent, proposerContentType, proposerAcceptContentTypes, proposerEthConsensusVersion string, version GetPayloadVersion) (payloadResult, bidResp) {
+	proposerEthConsensusVersion, parsedProposerContentType, request, err := decodeAndNormalizeBlindedBlock(log, signedBlindedBeaconBlockBytes, proposerContentType, proposerEthConsensusVersion)
 	if err != nil {
 		log.WithError(err).Error("failed to decode signed blinded beacon block")
 		return payloadResult{}, bidResp{}
 	}
+	log = log.WithField("parsedProposerContentType", parsedProposerContentType)
 
 	// Get information about the request
 	slot, err := request.Slot()
