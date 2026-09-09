@@ -88,6 +88,11 @@ func NewRelay(t *testing.T) *Relay {
 	// Initialize server
 	relay.Server = httptest.NewServer(relay.getRouter())
 
+	// Close the server when the test ends so repeated iterations (e.g.
+	// -count=N) do not leak httptest servers and their goroutines. Safe to
+	// call multiple times for tests that close the server themselves.
+	t.Cleanup(relay.Server.Close)
+
 	// Create the RelayEntry with correct pubkey
 	url, err := url.Parse(relay.Server.URL)
 	require.NoError(t, err)
