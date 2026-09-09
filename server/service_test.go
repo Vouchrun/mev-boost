@@ -1494,8 +1494,19 @@ func TestGetPayload(t *testing.T) {
 		rr := backend.requestBytes(t, path, header, payloadBytes)
 		require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
 
-		// Ensure both relays got the request
-		wg.Wait()
+		// Ensure both relays got the request. Bound the wait: a fanout
+		// request failure would otherwise hang the suite forever (each mock
+		// relay's request window is its 1s client timeout).
+		waitDone := make(chan struct{})
+		go func() {
+			defer close(waitDone)
+			wg.Wait()
+		}()
+		select {
+		case <-waitDone:
+		case <-time.After(5 * time.Second):
+			t.Fatal("timed out waiting for both relays to receive the getPayload request")
+		}
 		require.Equal(t, 1, backend.relays[0].GetRequestCount(path))
 		require.Equal(t, 1, backend.relays[1].GetRequestCount(path))
 	})
@@ -1804,6 +1815,25 @@ func TestGetPayloadV2(t *testing.T) {
 
 		require.Equal(t, http.StatusAccepted, rr.Code, rr.Body.String())
 		require.Less(t, firstResponseTime, delay)
+
+		// The fanout is async: the first (fastest) response returns before the
+		// other relays' requests have necessarily landed. Wait (bounded) until
+		// every relay has received its request before asserting the counts.
+		deadline := time.Now().Add(5 * time.Second)
+		for {
+			got := []int{
+				backend.relays[0].GetRequestCount(path),
+				backend.relays[1].GetRequestCount(path),
+				backend.relays[2].GetRequestCount(path),
+			}
+			if got[0] >= 1 && got[1] >= 1 && got[2] >= 1 {
+				break
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("timed out waiting for all relays to receive the request: counts %v", got)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
 		require.Equal(t, 1, backend.relays[0].GetRequestCount(path))
 		require.Equal(t, 1, backend.relays[1].GetRequestCount(path))
 		require.Equal(t, 1, backend.relays[2].GetRequestCount(path))
