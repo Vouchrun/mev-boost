@@ -1,0 +1,33 @@
+# mev-boost relay configuration - WAN getHeader budget example.
+#
+# WHY THIS FILE EXISTS:
+# mev-boost applies a per-request context deadline to getHeader of
+# min(timeout_get_header_ms, late_in_slot_time_ms - ms_into_slot).
+# timeout_get_header_ms defaults to 950ms and is settable ONLY via this
+# config file - the -request-timeout-getheader CLI flag raises only the
+# HTTP client timeout, NOT this budget.
+#
+# WHEN YOU NEED IT:
+# If your relay is a WAN hop away (public internet, ~0.3-0.5s RTT), each
+# getHeader pays a cold TLS handshake (~0.8-1.2s) because duties are too
+# sparse for TCP keep-alive. The 950ms default then kills every getHeader
+# and your validator silently falls back to building blocks locally -
+# costing you MEV income on every proposal. Raise the budget to 3000ms.
+#
+# HOW TO USE:
+# - Save as config.yaml next to your compose file.
+# - In docker-compose.yml: remove the -relay=... command line (relays and
+#   -relay are mutually exclusive), add - -config=/etc/mev-boost/config.yaml
+#   and a volume mount: ./config.yaml:/etc/mev-boost/config.yaml:ro
+#
+# enable_timing_games=false: timing games optimize multi-relay bid competition
+# on aligned slots; with a single relay they only re-introduce wait windows.
+# late_in_slot_time_ms is the per-slot deadline after which headers are no
+# longer requested; 4000 leaves the full 3s budget available for most of a
+# 10-second slot.
+
+timeout_get_header_ms: 3000
+late_in_slot_time_ms: 4000
+relays:
+  - url: https://0xa6b974cbc17ce9c37b5f9796e167455d22882f2ca662c19379b0b9c476b1fbe745c19006444b653f9fb8409ffda9a450@boost-relay.vouch.run
+    enable_timing_games: false

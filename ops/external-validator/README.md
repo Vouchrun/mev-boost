@@ -45,3 +45,27 @@ Verify:
   relay you can lower it via `-request-timeout-getheader` (ms).
 - If the relay is unreachable, the sidecar fails closed: your beacon node
   continues producing blocks locally with zero missed proposals.
+
+## WAN relays: raising the getHeader budget
+
+There are **two** getHeader timeouts:
+
+- `-request-timeout-getheader` — the HTTP client timeout, already set to 3000ms
+  in the compose file above.
+- `timeout_get_header_ms` — the per-request **context budget** that mev-boost
+  actually enforces (`min(timeout_get_header_ms, late_in_slot_time_ms -
+  ms_into_slot)`). It defaults to **950ms** and is configurable **only** via a
+  YAML config file — the CLI flag above does not touch it.
+
+When the relay is a WAN hop away, the 950ms budget kills every getHeader (cold
+TLS alone is ~1.2s), and your validator silently falls back to building blocks
+locally. If you see that happening, switch to the config file:
+
+- Use `mev-boost-config.example.yaml` in this directory as the starting point.
+- Compose wiring: remove the `-relay=...` command line entry (`-relay` and the
+  config `relays:` list are mutually exclusive), add
+  `- -config=/etc/mev-boost/config.yaml` and a volume mount
+  `./config.yaml:/etc/mev-boost/config.yaml:ro`.
+
+Validators on a LAN-close path do not need this — the 950ms default is fine
+there, and the compose above (with the CLI flag only) is all you need.
