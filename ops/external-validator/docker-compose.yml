@@ -1,0 +1,19 @@
+name: mev-boost
+
+# PulseChain mev-boost sidecar for the Vouch relay.
+# boost-relay.vouch.run resolves via public DNS. The -relay URL pins the relay's BLS pubkey.
+services:
+  mev-boost:
+    image: ghcr.io/vouchrun/mev-boost:pulse
+    container_name: mev-boost
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - -pulsechain
+      - -metrics
+      - -relay-check
+      - -min-bid=2000
+      - -relay=https://0xa6b974cbc17ce9c37b5f9796e167455d22882f2ca662c19379b0b9c476b1fbe745c19006444b653f9fb8409ffda9a450@boost-relay.vouch.run
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: 3 }

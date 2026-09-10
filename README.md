@@ -34,6 +34,7 @@ See also:
 
 * [MEV-Boost Docker images](https://hub.docker.com/r/flashbots/mev-boost)
 * [Wiki](https://github.com/flashbots/mev-boost/wiki)
+* [PulseChain: external-validator reference deployment](ops/external-validator/) — connect a PulseChain validator to the Vouch relay
 * Specs:
   * [Builder API](https://ethereum.github.io/builder-specs)
 
