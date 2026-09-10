@@ -36,9 +36,10 @@ Verify:
 - Registrations carry the **fee recipient configured in the validator client**;
   MEV payouts from winning bids go to that address. Keep it set to your own
   address (or your protocol's collector if applicable).
-- `-min-bid=2000` (2000 wei) only accepts bids above a trivial floor; if the
-  relay returns no qualifying bid the beacon node falls back to building the
-  block locally — your validator keeps proposing either way.
+- `-min-bid=2000` sets a 2000 PLS floor (the flag is denominated in PLS units,
+  converted to wei = 2000e18). Slots whose best relay bid is below the floor
+  build locally instead — your validator keeps proposing either way. Set
+  `-min-bid=0` to accept any bid.
 - The getHeader timeout is set to **3000ms** because the relay is reached over
   WAN with a cold TLS handshake per call; if your validators are LAN-close to a
   relay you can lower it via `-request-timeout-getheader` (ms).
