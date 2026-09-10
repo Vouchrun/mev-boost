@@ -39,5 +39,8 @@ Verify:
 - `-min-bid=2000` (2000 wei) only accepts bids above a trivial floor; if the
   relay returns no qualifying bid the beacon node falls back to building the
   block locally — your validator keeps proposing either way.
+- The getHeader timeout is set to **3000ms** because the relay is reached over
+  WAN with a cold TLS handshake per call; if your validators are LAN-close to a
+  relay you can lower it via `-request-timeout-getheader` (ms).
 - If the relay is unreachable, the sidecar fails closed: your beacon node
   continues producing blocks locally with zero missed proposals.
