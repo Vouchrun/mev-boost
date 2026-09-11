@@ -39,6 +39,7 @@ type MuxEntryYAML struct {
 type Config struct {
 	TimeoutGetHeaderMs uint64            `yaml:"timeout_get_header_ms"`
 	LateInSlotTimeMs   uint64            `yaml:"late_in_slot_time_ms"`
+	RelayKeepAliveMs   uint64            `yaml:"relay_keepalive_ms"`
 	Relays             []RelayConfigYAML `yaml:"relays"`
 	Mux                []MuxEntryYAML    `yaml:"mux"`
 }
@@ -47,6 +48,7 @@ type ConfigResult struct {
 	RelayConfigs       map[string]types.RelayConfig
 	TimeoutGetHeaderMs uint64
 	LateInSlotTimeMs   uint64
+	RelayKeepAliveMs   uint64
 	MuxMap             config.MuxMap
 }
 
@@ -168,6 +170,11 @@ func parseConfig(cfg Config) (*ConfigResult, error) {
 		lateInSlotTimeMs = 2000
 	}
 
+	relayKeepAliveMs := cfg.RelayKeepAliveMs
+	if relayKeepAliveMs == 0 {
+		relayKeepAliveMs = 30000
+	}
+
 	configMap := make(map[string]types.RelayConfig)
 	for _, relay := range cfg.Relays {
 		relayEntry, err := types.NewRelayEntry(strings.TrimSpace(relay.URL))
@@ -232,6 +239,7 @@ func parseConfig(cfg Config) (*ConfigResult, error) {
 		RelayConfigs:       configMap,
 		TimeoutGetHeaderMs: timeoutGetHeaderMs,
 		LateInSlotTimeMs:   lateInSlotTimeMs,
+		RelayKeepAliveMs:   relayKeepAliveMs,
 		MuxMap:             muxMap,
 	}, nil
 }

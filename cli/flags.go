@@ -40,6 +40,7 @@ var flags = []cli.Flag{
 	timeoutGetPayloadFlag,
 	timeoutRegValFlag,
 	maxRetriesFlag,
+	relayKeepAliveMsFlag,
 	// metrics
 	metricsFlag,
 	metricsAddrFlag,
@@ -208,6 +209,13 @@ var (
 		Sources:  cli.EnvVars("REQUEST_MAX_RETRIES"),
 		Usage:    "maximum number of retries for a relay get payload request",
 		Value:    5,
+		Category: RelayCategory,
+	}
+	relayKeepAliveMsFlag = &cli.UintFlag{
+		Name:     "relay-keepalive-ms",
+		Sources:  cli.EnvVars("RELAY_KEEPALIVE_MS"),
+		Usage:    "interval in ms for keep-alive status requests to each relay (0 disables; keeps the transport warm for low-latency getHeader)",
+		Value:    30000,
 		Category: RelayCategory,
 	}
 	// metrics
