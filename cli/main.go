@@ -39,6 +39,7 @@ type RelaySetupResult struct {
 	RelayCheck         bool
 	TimeoutGetHeaderMs uint64
 	LateInSlotTimeMs   uint64
+	RelayKeepAliveMs   uint64
 	CLIRelays          []serverTypes.RelayEntry // CLI-provided relays for hot-reload merging
 }
 
@@ -105,6 +106,7 @@ func start(_ context.Context, cmd *cli.Command) error {
 		MetricsAddr:              metricsAddr,
 		TimeoutGetHeaderMs:       relaySetup.TimeoutGetHeaderMs,
 		LateInSlotTimeMs:         relaySetup.LateInSlotTimeMs,
+		RelayKeepAliveMs:         relaySetup.RelayKeepAliveMs,
 	}
 	service, err := server.NewBoostService(opts)
 	if err != nil {
@@ -170,6 +172,7 @@ func setupRelays(cmd *cli.Command) (*RelaySetupResult, error) {
 	var muxMap config.MuxMap
 	var timeoutGetHeaderMs uint64 = 950
 	var lateInSlotTimeMs uint64 = 2000
+	var relayKeepAliveMs uint64 = 30000
 	if cmd.IsSet(relayConfigFlag.Name) {
 		configPath := cmd.String(relayConfigFlag.Name)
 		log.Infof("loading config from: %s", configPath)
@@ -181,7 +184,12 @@ func setupRelays(cmd *cli.Command) (*RelaySetupResult, error) {
 		configMap = configResult.RelayConfigs
 		timeoutGetHeaderMs = configResult.TimeoutGetHeaderMs
 		lateInSlotTimeMs = configResult.LateInSlotTimeMs
+		relayKeepAliveMs = configResult.RelayKeepAliveMs
 		muxMap = configResult.MuxMap
+	}
+	// CLI flag overrides the config file value (0 disables the warmer)
+	if cmd.IsSet(relayKeepAliveMsFlag.Name) {
+		relayKeepAliveMs = uint64(cmd.Uint(relayKeepAliveMsFlag.Name))
 	}
 	relayConfigs, err := MergeRelayConfigs(relays, configMap)
 	if err != nil {
@@ -216,6 +224,7 @@ func setupRelays(cmd *cli.Command) (*RelaySetupResult, error) {
 		RelayCheck:         cmd.Bool(relayCheckFlag.Name),
 		TimeoutGetHeaderMs: timeoutGetHeaderMs,
 		LateInSlotTimeMs:   lateInSlotTimeMs,
+		RelayKeepAliveMs:   relayKeepAliveMs,
 		CLIRelays:          []serverTypes.RelayEntry(relays),
 	}, nil
 }

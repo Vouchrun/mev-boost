@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -2247,4 +2248,35 @@ func TestGetPayloadForwardsNormalizedEthConsensusVersion(t *testing.T) {
 			require.Equal(t, EthConsensusVersionCapella, <-gotVersion)
 		})
 	}
+}
+
+// TestRelayKeepAlive verifies the keep-alive warmer repeatedly hits every
+// relay's status endpoint through httpClientGetHeader and stops cleanly on
+// context cancellation.
+func TestRelayKeepAlive(t *testing.T) {
+	backend := newTestBackend(t, 1, time.Second)
+	backend.boost.relayKeepAliveMs = 10 // tiny interval for a fast test
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		backend.boost.startRelayKeepAlive(ctx)
+	}()
+
+	// the warmer fires immediately, then every 10ms: expect several hits
+	require.Eventually(t, func() bool {
+		return backend.relays[0].GetRequestCount(params.PathStatus) >= 3
+	}, time.Second, 5*time.Millisecond)
+
+	hitsBeforeCancel := backend.relays[0].GetRequestCount(params.PathStatus)
+
+	cancel()
+	<-done // loop must exit cleanly on cancel
+
+	// no further requests after cancellation
+	time.Sleep(50 * time.Millisecond)
+	require.Equal(t, hitsBeforeCancel, backend.relays[0].GetRequestCount(params.PathStatus))
 }

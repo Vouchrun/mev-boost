@@ -70,6 +70,11 @@ type BoostServiceOpts struct {
 	TimeoutGetHeaderMs uint64
 	LateInSlotTimeMs   uint64
 
+	// RelayKeepAliveMs is the interval in milliseconds between keep-alive
+	// status requests sent to every configured relay to keep the HTTP
+	// transport warm for low-latency getHeader calls. 0 disables the warmer.
+	RelayKeepAliveMs uint64
+
 	MetricsAddr string
 }
 
@@ -92,6 +97,8 @@ type BoostService struct {
 
 	timeoutGetHeaderMs uint64
 	lateInSlotTimeMs   uint64
+
+	relayKeepAliveMs uint64
 
 	bids     map[string]bidResp // keeping track of bids, to log the originating relay on withholding
 	bidsLock sync.Mutex
@@ -143,6 +150,8 @@ func NewBoostService(opts BoostServiceOpts) (*BoostService, error) {
 		requestMaxRetries:  opts.RequestMaxRetries,
 		timeoutGetHeaderMs: opts.TimeoutGetHeaderMs,
 		lateInSlotTimeMs:   opts.LateInSlotTimeMs,
+
+		relayKeepAliveMs: opts.RelayKeepAliveMs,
 	}, nil
 }
 
@@ -187,6 +196,13 @@ func (m *BoostService) StartHTTPServer() error {
 	}
 
 	go m.startBidCacheCleanupTask()
+	if m.relayKeepAliveMs > 0 {
+		// The warmer lives for the lifetime of the HTTP server: create its
+		// context here and cancel it when ListenAndServe returns.
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go m.startRelayKeepAlive(ctx)
+	}
 
 	m.srv = &http.Server{
 		Addr:    m.listenAddr,
@@ -205,6 +221,52 @@ func (m *BoostService) StartHTTPServer() error {
 		return nil
 	}
 	return err
+}
+
+// startRelayKeepAlive periodically warms the transport pool to every
+// configured relay by issuing a status request through httpClientGetHeader -
+// the same client the getHeader path uses, so its connection pool (and thus
+// the established TLS connection) is what gets warmed. It fires immediately
+// at startup, then every relayKeepAliveMs. The loop is purely a transport
+// warmer: it never influences relay selection or health state, and any HTTP
+// response (including 4xx/5xx) counts as a successful warm. It exits when the
+// context is cancelled.
+func (m *BoostService) startRelayKeepAlive(ctx context.Context) {
+	interval := time.Duration(m.relayKeepAliveMs) * time.Millisecond
+	if interval <= 0 {
+		return
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		if ctx.Err() != nil {
+			return
+		}
+		m.warmRelays(ctx)
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+// warmRelays issues a GET status request to every currently configured relay
+// through httpClientGetHeader. Network-level errors are logged at debug level;
+// any HTTP response (even 4xx/5xx) keeps the connection warm.
+func (m *BoostService) warmRelays(ctx context.Context) {
+	m.relayConfigsLock.RLock()
+	allConfigs := m.AllRelayConfigs()
+	m.relayConfigsLock.RUnlock()
+
+	for _, relayConfig := range allConfigs {
+		url := relayConfig.RelayEntry.GetURI(params.PathStatus)
+		_, err := SendHTTPRequest(ctx, m.httpClientGetHeader, http.MethodGet, url, "", nil, nil, nil)
+		if err != nil && !errors.Is(err, errHTTPErrorResponse) {
+			// network-level failure only (a response was not received)
+			m.log.WithField("url", url).WithError(err).Debug("relay keep-alive request failed")
+		}
+	}
 }
 
 // StartMetricsServer starts the HTTP server for exporting metrics

@@ -14,6 +14,13 @@ timeout_get_header_ms: 950
 # Default: 2000ms
 late_in_slot_time_ms: 2000
 
+# Interval in milliseconds for keep-alive status requests to each relay.
+# Keeps the HTTP transport warm (established TLS connection) so getHeader does
+# not pay a cold handshake per call on WAN-latency relays. 0 disables the
+# warmer (disable via the -relay-keepalive-ms CLI flag).
+# Default: 30000ms
+relay_keepalive_ms: 30000
+
 # Relay Configurations
 # Each relay can be configured individually. Relays can also be provided via cli using
 # the -relay flag. Cli provided relays will be merged with config file relays.

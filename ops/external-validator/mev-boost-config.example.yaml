@@ -14,6 +14,12 @@
 # and your validator silently falls back to building blocks locally -
 # costing you MEV income on every proposal. Raise the budget to 3000ms.
 #
+# relay_keepalive_ms: periodic status pings keep the HTTP transport to the
+# relay warm, so getHeader rides an established connection and answers
+# inside the beacon node's hardcoded 1s builder-header cutoff instead of
+# silently falling back to local building. 0 disables the warmer (via the
+# -relay-keepalive-ms CLI flag). Default: 30000ms.
+#
 # HOW TO USE:
 # - Save as config.yaml next to your compose file.
 # - In docker-compose.yml: remove the -relay=... command line (relays and
@@ -28,6 +34,7 @@
 
 timeout_get_header_ms: 3000
 late_in_slot_time_ms: 4000
+relay_keepalive_ms: 30000
 relays:
   - url: https://0xa6b974cbc17ce9c37b5f9796e167455d22882f2ca662c19379b0b9c476b1fbe745c19006444b653f9fb8409ffda9a450@boost-relay.vouch.run
     enable_timing_games: false
