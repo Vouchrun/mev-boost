@@ -98,9 +98,7 @@ type BoostService struct {
 	timeoutGetHeaderMs uint64
 	lateInSlotTimeMs   uint64
 
-	relayKeepAliveMs     uint64
-	relayKeepAliveCtx    context.Context
-	relayKeepAliveCancel context.CancelFunc
+	relayKeepAliveMs uint64
 
 	bids     map[string]bidResp // keeping track of bids, to log the originating relay on withholding
 	bidsLock sync.Mutex
@@ -123,8 +121,6 @@ func NewBoostService(opts BoostServiceOpts) (*BoostService, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	relayKeepAliveCtx, relayKeepAliveCancel := context.WithCancel(context.Background())
 
 	return &BoostService{
 		listenAddr:   opts.ListenAddr,
@@ -155,9 +151,7 @@ func NewBoostService(opts BoostServiceOpts) (*BoostService, error) {
 		timeoutGetHeaderMs: opts.TimeoutGetHeaderMs,
 		lateInSlotTimeMs:   opts.LateInSlotTimeMs,
 
-		relayKeepAliveMs:     opts.RelayKeepAliveMs,
-		relayKeepAliveCtx:    relayKeepAliveCtx,
-		relayKeepAliveCancel: relayKeepAliveCancel,
+		relayKeepAliveMs: opts.RelayKeepAliveMs,
 	}, nil
 }
 
@@ -203,7 +197,11 @@ func (m *BoostService) StartHTTPServer() error {
 
 	go m.startBidCacheCleanupTask()
 	if m.relayKeepAliveMs > 0 {
-		go m.startRelayKeepAlive(m.relayKeepAliveCtx)
+		// The warmer lives for the lifetime of the HTTP server: create its
+		// context here and cancel it when ListenAndServe returns.
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go m.startRelayKeepAlive(ctx)
 	}
 
 	m.srv = &http.Server{
@@ -219,7 +217,6 @@ func (m *BoostService) StartHTTPServer() error {
 	}
 
 	err := m.srv.ListenAndServe()
-	m.relayKeepAliveCancel() // stop the warmer when serving stops
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}

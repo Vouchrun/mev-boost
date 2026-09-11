@@ -2257,7 +2257,7 @@ func TestRelayKeepAlive(t *testing.T) {
 	backend := newTestBackend(t, 1, time.Second)
 	backend.boost.relayKeepAliveMs = 10 // tiny interval for a fast test
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	done := make(chan struct{})
