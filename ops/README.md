@@ -27,10 +27,22 @@ README.
 
 ## Quickstart
 
+Run the sidecar from a fresh directory with one command:
+
 ```bash
-cd ops
-docker compose up -d
+mkdir -p mev-boost && cd mev-boost && curl -fsSLO https://raw.githubusercontent.com/Vouchrun/mev-boost/pulse/ops/docker-compose.yml && curl -fsSLO https://raw.githubusercontent.com/Vouchrun/mev-boost/pulse/ops/mev-boost-config.example.yaml && docker compose up -d
 ```
+
+- Creates a `mev-boost/` directory and downloads `docker-compose.yml` (the
+  self-contained reference compose) plus `mev-boost-config.example.yaml`
+  (optional WAN tuning reference).
+- `docker compose up -d` pulls `ghcr.io/vouchrun/mev-boost:pulse` and starts the
+  sidecar.
+- **Next step:** set the mandatory consensus-client flags from
+  [Prerequisites](#prerequisites) - the sidecar alone does nothing until the
+  beacon node points at it and the gas-limit flag is set.
+
+With a repo checkout instead: `cd ops && docker compose up -d`.
 
 Verify:
 
@@ -45,7 +57,8 @@ Verify:
    beacon node's proposer duties for the current/next epoch
    (`/eth/v1/validator/duties/proposer/{epoch}`) and wait for any duty slot to
    pass.
-2. Start the mev-boost sidecar first: `docker compose up -d`.
+2. Make sure the mev-boost sidecar is running first (the quickstart starts it;
+   if you stopped it: `docker compose up -d`).
 3. Restart the **beacon node** (with the builder endpoint flag).
 4. Restart the **validator client** (with the builder + gas-limit flags).
 
@@ -105,7 +118,8 @@ When the relay is a WAN hop away, the 950ms budget kills every getHeader (cold
 TLS alone is ~1.2s), and your validator silently falls back to building blocks
 locally. If you see that happening, switch to the config file:
 
-- Use `mev-boost-config.example.yaml` in this directory as the starting point.
+- The one-liner already downloaded `mev-boost-config.example.yaml` into the
+  directory; copy it to `config.yaml` and use it as the starting point.
 - Compose wiring: remove the `-relay=...` command line entry (`-relay` and the
   config `relays:` list are mutually exclusive), add
   `- -config=/etc/mev-boost/config.yaml` and a volume mount
