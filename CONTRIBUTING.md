@@ -6,7 +6,7 @@ Please start by reading our [code of conduct](CODE_OF_CONDUCT.md).
 
 ## Set up
 
-Install a few dev dependencies for `make lint`: https://github.com/flashbots/mev-boost/blob/develop/.github/workflows/lint.yml#L29-L37
+Install a few dev dependencies for `make lint`: https://github.com/Vouchrun/mev-boost/blob/pulse/.github/workflows/lint.yml#L29-L37
 
 Look at the [README for instructions to install the dependencies and build `mev-boost`](README.md#installing)
 
@@ -79,7 +79,3 @@ Follow the [Clean Code](https://flashbots.notion.site/Clean-Code-13016c5c7ca649f
 - Every pull request should be covered by unit tests.
 
 We appreciate you, friend <3.
-
----
-
-For the checklist and guide to releasing a new version, see [RELEASE.md](RELEASE.md).
