@@ -9,6 +9,16 @@
 > - Docker image: `ghcr.io/vouchrun/mev-boost:pulse`
 > - Relay: `https://boost-relay.vouch.run` · Delivered blocks: `https://boost-relay.vouch.run/mevblocks`
 
+**Quickstart** - run the sidecar with one command (Docker required):
+
+```bash
+mkdir -p mev-boost && cd mev-boost && curl -fsSLO https://raw.githubusercontent.com/Vouchrun/mev-boost/pulse/ops/docker-compose.yml && curl -fsSLO https://raw.githubusercontent.com/Vouchrun/mev-boost/pulse/ops/mev-boost-config.example.yaml && docker compose up -d
+```
+
+This starts the sidecar only - your beacon node and validator client still
+need the builder and gas-limit flags (including the mandatory
+`--gas-limit 45000000`); see the [setup guide](ops/README.md).
+
 ---
 
 [![Goreport status](https://goreportcard.com/badge/github.com/Vouchrun/mev-boost)](https://goreportcard.com/report/github.com/Vouchrun/mev-boost)
