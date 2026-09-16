@@ -59,9 +59,8 @@ representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement writing an
-email to leo@flashbots.net or contacting elopio#8526 in
-[Discord](https://discord.com/invite/7hvTycdNcK).
+reported to the maintainers of this fork by opening an issue at
+https://github.com/Vouchrun/mev-boost/issues.
 All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
